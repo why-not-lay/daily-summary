@@ -1,0 +1,14 @@
+.daily_list {
+  padding: 20px;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+
+  .data {
+    margin-top: 16px;
+  }
+
+  .pagination {
+    padding-top: 16px;
+  }
+}
