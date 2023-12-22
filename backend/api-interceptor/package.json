@@ -1,0 +1,16 @@
+{
+  "name": "api-interceptor",
+  "version": "0.1.0",
+  "description": "intercept apis",
+  "main": "run.js",
+  "scripts": {
+    "compile": "tsc",
+    "dev": "rm -rf ./dist && tsc && node ./dist/run.js"
+  },
+  "author": "losor",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "typescript": "^5.3.3"
+  }
+}
