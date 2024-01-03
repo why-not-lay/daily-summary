@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "intercept apis",
   "main": "run.js",
+  "type": "module",
   "scripts": {
     "compile": "tsc",
     "dev": "rm -rf ./dist && tsc && node ./dist/run.js"
@@ -12,5 +13,16 @@
   "devDependencies": {
     "@types/node": "^20.10.5",
     "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@fastify/redis": "^6.1.1",
+    "@fastify/reply-from": "^9.4.0",
+    "@fastify/type-provider-json-schema-to-ts": "^2.2.2",
+    "@fastify/type-provider-typebox": "^3.5.0",
+    "dotenv": "^16.3.1",
+    "fastify": "^4.25.1",
+    "fastify-plugin": "^4.5.1",
+    "knex": "^3.1.0",
+    "mysql2": "^3.6.5"
   }
 }
