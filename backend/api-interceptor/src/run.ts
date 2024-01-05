@@ -1,5 +1,6 @@
 import { JsonSchemaToTsProvider } from '@fastify/type-provider-json-schema-to-ts'
 import Fastify, { FastifyError, FastifyReply, FastifyRequest, RouteShorthandOptions } from "fastify";
+import { createWriteStream } from 'pino-http-send';
 import FastifyKnex from "./plugins/fastify-knex.js";
 import FastifyRedis from "@fastify/redis";
 import FastifyReplyFrom from '@fastify/reply-from';
@@ -38,8 +39,16 @@ enum FLAGS {
 const TABLE = 'apis';
 const CACHE_KEY = 'api_cache';
 
+const logStream = createWriteStream({
+  url: 'http://localhost:10050/log',
+});
+
 const fastify = Fastify({
-  logger: true,
+  logger: {
+    name: 'api-interceptor',
+    level: 'info',
+    stream: logStream,
+  },
 }).withTypeProvider<JsonSchemaToTsProvider>();
 
 // redis
@@ -49,7 +58,6 @@ fastify.register(FastifyRedis, {
 
 // mysql
 fastify.register(FastifyKnex, {
-  logLevel: 'info',
   client: 'mysql2',
   connection: {
     host : config.db.host,
@@ -78,7 +86,7 @@ fastify.setErrorHandler((error: FastifyError, req: FastifyRequest, reply: Fastif
 
 const validateOrigin = (origin: string) => /^(https?):\/\/(www\.)?([a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+)(:\d+)?$/.test(origin);
 
-const getPairs = async (apis: string[]) => {
+const getPairs = async (apis: string[], flag = FLAGS.BASE) => {
   const origins = await fastify.redis.hmget(CACHE_KEY, ...apis);
   const pairs = origins.map((origin, idx) => ({
     api: apis[idx],
@@ -88,8 +96,9 @@ const getPairs = async (apis: string[]) => {
   if(uncached.length === 0){
     return pairs;
   }
-  const targetFlags = FLAGS.BASE;
-  const res: ApiOriginPair[] = await fastify.knex.select('origin', 'api').from<ApiRecord>(TABLE).whereRaw('(flag & ?) > 0', targetFlags).andWhere(builder => builder.whereIn('api', uncached.map(pair => pair.api)));
+  const sql = fastify.knex.select('origin', 'api').from<ApiRecord>(TABLE).where('flag', flag).andWhere(builder => builder.whereIn('api', uncached.map(pair => pair.api))).toString();
+  fastify.log.info(sql)
+  const res: ApiOriginPair[] = await fastify.knex.select('origin', 'api').from<ApiRecord>(TABLE).where('flag', flag).andWhere(builder => builder.whereIn('api', uncached.map(pair => pair.api)));
   if(res.length > 0) {
     const updates: Record<string, string> = {};
     res.forEach(pair => {
@@ -139,7 +148,6 @@ fastify.post<{
     pairs: ApiOriginPair[]
   }
 }>('/bind', bindSchema, async (req, reply) => {
-  console.log(req.ip)
   const { pairs } = req.body;
   const targetFlag = FLAGS.BASE;
   const updates: ApiRecord[] = pairs.map(pair => ({
@@ -150,7 +158,10 @@ fastify.post<{
   }));
   if(pairs.length > 0) {
     const apis = pairs.map(pair => pair.api);
-    await fastify.knex(TABLE).insert(updates).onConflict('api').merge(['origin', 'update_time']);
+
+    const sql = fastify.knex(TABLE).insert(updates).onConflict('api').merge(['origin', 'update_time', 'flag']).toString();
+    fastify.log.info(sql)
+    await fastify.knex(TABLE).insert(updates).onConflict('api').merge(['origin', 'update_time', 'flag']);
     // 清除旧缓存
     await fastify.redis.hdel(CACHE_KEY, ...apis);
   }
@@ -186,6 +197,11 @@ fastify.post(
       // 清除缓存
       await fastify.redis.hdel(CACHE_KEY, ...apis);
       // 设置数据 flag
+      const sql = fastify.knex(TABLE).update({
+        flag: targetFlag,
+        update_time: Date.now(),
+      }).whereIn('api', apis).toString();
+      fastify.log.info(sql)
       await fastify.knex(TABLE).update({
         flag: targetFlag,
         update_time: Date.now(),
