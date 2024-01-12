@@ -6,6 +6,7 @@ interface ApiServerConfig {
     host: string,
     origin: string,
     whiteList: string[],
+    registerOrigin: string,
   },
   db: {
     host: string,
@@ -22,6 +23,7 @@ export const config: ApiServerConfig = {
     port: process.env.SERVER_PORT ? Number.parseInt(process.env.SERVER_PORT) : 3000,
     whiteList: process.env.SERVER_WHITE_LIST?.split(',') ?? [],
     origin: process.env.SERVER_ORIGIN ?? '',
+    registerOrigin: process.env.SERVER_REGISTER_ORIGIN ?? ''
   },
   db: {
     host : process.env.DB_HOST ?? 'localhost',
