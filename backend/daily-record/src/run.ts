@@ -60,13 +60,14 @@ const origin = config.server.origin;
 const apis = [
   '/record/add',
   '/record/get',
+  '/record/getOpts',
 ];
 
 // hook
 fastify.addHook('onReady', async () => {
   try {
     const resp = await request({
-      url: 'http://127.0.0.1:3000/bind',
+      url: `${config.server.registerOrigin}/bind`,
       method: 'post',
       headers: {
         'Content-Type': 'application/json',
@@ -232,11 +233,11 @@ fastify.post(
 /**
  * 获取所有特定属性选项
  */
-fastify.get(
+fastify.post(
   '/record/getOpts',
   {
     schema: {
-      querystring: {
+      body: {
         type: 'object',
         properties: {
           type: { type: 'string' },
@@ -245,7 +246,7 @@ fastify.get(
     }
   },
   async (req, reply) => {
-    const { type } = req.query;
+    const { type } = req.body;
     let res: any[] = [];
     if (['source', 'status'].includes(type ?? '')) {
       const sql = fastify.knex.distinct(type!).from<RecordRecord>(TABLE).toString();
