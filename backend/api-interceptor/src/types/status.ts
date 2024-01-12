@@ -26,4 +26,6 @@ export enum STATUS {
   ERROR_MEDIA_TYPE = -9,
   // 未找到资源
   ERROR_NOT_FOUND = -10,
+  // 解密失败
+  ERROR_DECRYPT = -11,
 }

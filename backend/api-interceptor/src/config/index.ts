@@ -12,7 +12,11 @@ interface ApiServerConfig {
     user: string,
     password: string,
   }
-
+  key: {
+    aes: string,
+    rsa: string,
+    iv: string,
+  }
 }
 
 export const config: ApiServerConfig = {
@@ -26,5 +30,10 @@ export const config: ApiServerConfig = {
     port : process.env.DB_PORT ? Number.parseInt(process.env.DB_PORT) : 3306,
     user : process.env.DB_USER ?? 'root',
     password : process.env.DB_PASSWORD ?? '',
+  },
+  key: {
+    aes: process.env.KEY_AES ?? new Array(4).fill(0).map(() => "0123456789"[Math.floor(Math.random() * 10)]).join(''),
+    rsa: process.env.KEY_RSA ?? '',
+    iv: process.env.KEY_IV ?? 'QXk1T5WteDpmhR2h',
   }
 }

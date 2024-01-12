@@ -12,6 +12,7 @@ const errorString = {
   CONTENT_LENGTH: '内容长度不符合',
   MEDIA_TYPE: '媒体类型有误',
   NOT_FOUND: '未找到资源',
+  DECRYPT: '数据解密失败',
 }
 
 export const errorMapping: Record<string, ServerError & { statusCode: number, type: string }> = {
@@ -96,5 +97,12 @@ export const errorMapping: Record<string, ServerError & { statusCode: number, ty
     type: 'FST_ERR_NOT_FOUND',
     code: STATUS.ERROR_NOT_FOUND,
     msg: errorString.NOT_FOUND,
+  },
+  // 数据解密失败
+  ERROR_DECRYPT: {
+    statusCode: 503,
+    type: 'ERROR_DECRYPT',
+    code: STATUS.ERROR_DECRYPT,
+    msg: errorString.DECRYPT,
   }
 }

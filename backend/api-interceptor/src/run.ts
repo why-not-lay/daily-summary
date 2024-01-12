@@ -6,6 +6,7 @@ import FastifyRedis from "@fastify/redis";
 import FastifyReplyFrom from '@fastify/reply-from';
 import { config } from './config/index.js';
 import { whiteListInterceptor } from './interceptor/while-list.js';
+import { decrypt } from './interceptor/decrypt.js';
 import { RespWrapper } from './wrapper/resp.js';
 import { errorMapping } from './errors/constant.js';
 import { SelfError } from './errors/self-error.js';
@@ -73,6 +74,7 @@ fastify.register(FastifyReplyFrom);
 
 // 拦截
 fastify.addHook('onRequest', whiteListInterceptor);
+fastify.addHook('preValidation', decrypt);
 
 // 错误处理
 fastify.setErrorHandler((error: FastifyError, req: FastifyRequest, reply: FastifyReply) => {
@@ -216,7 +218,7 @@ fastify.get('*', async (req, reply) => {
   const pair = (await getPairs([url]))?.[0] ?? {};
   const { origin } = pair;
   if(validateOrigin(String(origin))) {
-    reply.from(`${origin}${url}`);
+    return reply.from(`${origin}${url}`);
   } else {
     const { type, msg } = errorMapping.ERROR_NOT_FOUND
     throw new SelfError(msg, type);
@@ -228,7 +230,7 @@ fastify.post('*', async (req, reply) => {
   const pair = (await getPairs([url]))?.[0] ?? {};
   const { origin } = pair;
   if(validateOrigin(String(origin))) {
-    reply.from(`${origin}${url}`);
+    return reply.from(`${origin}${url}`);
   } else {
     const { type, msg } = errorMapping.ERROR_NOT_FOUND
     throw new SelfError(msg, type);
