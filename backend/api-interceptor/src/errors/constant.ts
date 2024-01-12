@@ -13,6 +13,7 @@ const errorString = {
   MEDIA_TYPE: '媒体类型有误',
   NOT_FOUND: '未找到资源',
   DECRYPT: '数据解密失败',
+  AUTH: '未通过认证',
 }
 
 export const errorMapping: Record<string, ServerError & { statusCode: number, type: string }> = {
@@ -104,5 +105,12 @@ export const errorMapping: Record<string, ServerError & { statusCode: number, ty
     type: 'ERROR_DECRYPT',
     code: STATUS.ERROR_DECRYPT,
     msg: errorString.DECRYPT,
-  }
+  },
+  // 未通过认证
+  ERROR_AUTH: {
+    statusCode: 403,
+    type: 'ERROR_AUTH',
+    code: STATUS.ERROR_AUTH,
+    msg: errorString.AUTH,
+  },
 }
