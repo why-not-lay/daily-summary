@@ -213,6 +213,34 @@ fastify.post(
   }
 )
 
+/**
+ * 用户校验
+ */
+fastify.post(
+  '/auth/user',
+  {
+    schema: {
+      // 请求体
+      body: {
+        type: 'object',
+        properties: {
+          key: {
+            type: 'string'
+          }
+        },
+        required: ['key']
+      }
+    }
+  }, 
+  async (req, reply) => {
+    const { key } = req.body;
+    if(key !== config.key.aes) {
+      throw new SelfError('未通过用户认证', errorMapping.ERROR_AUTH.type);
+    }
+    return reply.send(RespWrapper.success(null));
+  }
+)
+
 fastify.get('*', async (req, reply) => {
   const { url } = req;
   const pair = (await getPairs([url]))?.[0] ?? {};
