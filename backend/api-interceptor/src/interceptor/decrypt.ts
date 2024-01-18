@@ -14,7 +14,7 @@ const decryptFromRSA = (data: string) => {
 
 const decryptFromAES = (data: string, key: string) => {
   const algorithmn = 'aes-256-cbc';
-  const decipher = createDecipheriv(algorithmn, key, config.key.iv);
+  const decipher = createDecipheriv(algorithmn, Buffer.from(key, 'hex'), config.key.iv);
   let decrypted = decipher.update(data, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
   return decrypted;  
