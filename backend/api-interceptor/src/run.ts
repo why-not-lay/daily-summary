@@ -260,7 +260,22 @@ fastify.post('*', async (req, reply) => {
   const pair = (await getPairs([url]))?.[0] ?? {};
   const { origin } = pair;
   if(validateOrigin(String(origin))) {
-    return reply.from(`${origin}${url}`);
+    return reply.from(`${origin}${url}`, {
+      onResponse: (request, reply, res) => {
+        const contentType = reply.getHeader('content-type');
+        if((contentType as string).includes('application/json')) {
+          let data = '';
+          res.on('data', (chunk) => {
+            data += chunk;
+          });
+          res.on('end', () => {
+            reply.send(JSON.parse(data));
+          });
+        } else {
+          reply.send(res);
+        }
+      }
+    });
   } else {
     const { type, msg } = errorMapping.ERROR_NOT_FOUND
     throw new SelfError(msg, type);
