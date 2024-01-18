@@ -5,6 +5,7 @@ import { authUserReq } from "../../api/auth";
 import { md } from 'node-forge';
 
 import './index.css';
+import { ActionTypes, useDispatchContext } from "../../context/context-provider";
 
 const schema: BaseFormItemProps[] = [
   {
@@ -27,6 +28,8 @@ const schema: BaseFormItemProps[] = [
 ];
 
 export const UserAuth: React.FC = () => {
+  const dispatch = useDispatchContext();
+
   const onSubmit = async (e: SubmitContext) => {
     if(e.validateResult === true) {
       const { key: rawKey } = e.fields;
@@ -36,6 +39,13 @@ export const UserAuth: React.FC = () => {
         const { code, msg } = await authUserReq({ body });
         if(code === 0) {
           message.success('通过验证');
+          dispatch({
+            type: ActionTypes.UPDATE_STATE,
+            payloads: {
+              key: hash,
+              isAuth: true,
+            }
+          })
         } else {
           message.error('未通过验证');
           console.error(msg);

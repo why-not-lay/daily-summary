@@ -10,10 +10,10 @@ export interface LVPair<D> {
   value: D,
 }
 
-export interface FetcherParams {
-  headers?: Record<string, string>,
-  body?: Record<string, any>,
-  params?: Record<string, any>
+export interface FetcherParams<B = Record<string, any>, P = Record<string, any>, H = Record<string, string>> {
+  headers?: H,
+  body?: B,
+  params?: P
 }
 
 export interface PageConfig {

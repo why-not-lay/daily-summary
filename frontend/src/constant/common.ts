@@ -8,6 +8,7 @@ export enum RESPONSE_CODE {
 
 export enum REQUEST_URL {
   DAILY_LIST_REQ = '/daily/list',
+  AUTH_USER_REQ = '/auth/user',
 }
 
 export const numStr = '0123456789';

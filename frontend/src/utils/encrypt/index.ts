@@ -13,6 +13,19 @@ export const encryptByAes = (key: string, data: string) => {
   return encrypted;
 }
 
+export const decryptByAes = (key: string, data: string) => {
+  const iv = process.env.REACT_APP_KEY_IV;
+  if (typeof iv !== 'string' || iv.length !== 16) {
+    throw Error('AES 解密失败：iv 值设置有误');
+  }
+  const cp = cipher.createDecipher('AES-CBC', util.hexToBytes(key));
+  cp.start({ iv });
+  cp.update(util.createBuffer(util.hexToBytes(data)));
+  cp.finish()
+  const decrypted = cp.output.toString();
+  return decrypted;
+}
+
 export const encryptByRSA = (data: string) => {
   const pem = process.env.REACT_APP_KEY_RSA;
   if (typeof pem !== 'string') {

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { routers } from './routers';
+import { ContextProvider } from './context/context-provider';
 import './index.css';
 import 'tdesign-react/es/style/index.css';
 
@@ -12,7 +13,7 @@ const root = ReactDOM.createRoot(
 );
 
 root.render(
-  <React.StrictMode>
+  <ContextProvider>
     <RouterProvider router={router}/>
-  </React.StrictMode>
+  </ContextProvider>
 );
