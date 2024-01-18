@@ -30,4 +30,6 @@ export enum STATUS {
   ERROR_DECRYPT = -11,
   // 未通过认证
   ERROR_AUTH = -12,
+  // 加密失败
+  ERROR_ENCRYPT = -13
 }

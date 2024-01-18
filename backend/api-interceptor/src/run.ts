@@ -10,6 +10,7 @@ import { decrypt } from './interceptor/decrypt.js';
 import { RespWrapper } from './wrapper/resp.js';
 import { errorMapping } from './errors/constant.js';
 import { SelfError } from './errors/self-error.js';
+import { encrypt } from './interceptor/encrypt.js';
 
 interface ApiRecord {
   id?: number,
@@ -75,6 +76,7 @@ fastify.register(FastifyReplyFrom);
 // 拦截
 fastify.addHook('onRequest', whiteListInterceptor);
 fastify.addHook('preValidation', decrypt);
+fastify.addHook('preSerialization', encrypt);
 
 // 错误处理
 fastify.setErrorHandler((error: FastifyError, req: FastifyRequest, reply: FastifyReply) => {

@@ -14,6 +14,7 @@ const errorString = {
   NOT_FOUND: '未找到资源',
   DECRYPT: '数据解密失败',
   AUTH: '未通过认证',
+  ENCRYPT: '数据加密失败',
 }
 
 export const errorMapping: Record<string, ServerError & { statusCode: number, type: string }> = {
@@ -113,4 +114,11 @@ export const errorMapping: Record<string, ServerError & { statusCode: number, ty
     code: STATUS.ERROR_AUTH,
     msg: errorString.AUTH,
   },
+  // 数据加密失败
+  ERROR_ENCRYPT: {
+    statusCode: 503,
+    type: 'ERROR_ENCRYPT',
+    code: STATUS.ERROR_ENCRYPT,
+    msg: errorString.ENCRYPT,
+  }
 }
