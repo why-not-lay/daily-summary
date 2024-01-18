@@ -5,7 +5,7 @@ export const encryptByAes = (key: string, data: string) => {
   if (typeof iv !== 'string' || iv.length !== 16) {
     throw Error('AES 加密失败：iv 值设置有误');
   }
-  const cp = cipher.createCipher('AES-CBC', key)
+  const cp = cipher.createCipher('AES-CBC', util.hexToBytes(key))
   cp.start({ iv });
   cp.update(util.createBuffer(data, 'utf8'));
   cp.finish()

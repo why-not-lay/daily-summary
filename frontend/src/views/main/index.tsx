@@ -1,5 +1,5 @@
 import React from "react";
-import { Row, Col, Card } from "tdesign-react";
+import { Card } from "tdesign-react";
 import "./index.css";
 
 

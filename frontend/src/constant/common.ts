@@ -7,7 +7,8 @@ export enum RESPONSE_CODE {
 }
 
 export enum REQUEST_URL {
-  DAILY_LIST_REQ = '/daily/list',
+  DAILY_LIST_REQ = '/record/get',
+  DAILY_OPT_REQ = '/record/getOpts',
   AUTH_USER_REQ = '/auth/user',
 }
 

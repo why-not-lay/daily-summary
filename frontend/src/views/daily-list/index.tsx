@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { BaseTable, Card, PrimaryTableCol, Input, DateRangePicker, SubmitContext, Pagination, PageInfo } from 'tdesign-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BaseTable, Card, PrimaryTableCol, Input, DateRangePicker, Pagination, PageInfo, message, Select } from 'tdesign-react';
 import { DailyRow, dailyListReq } from "../../api/daily-list";
 import SearchBar, { SearchBarRef } from "../../components/search-bar";
 import { BaseFormItemProps } from "../../components/base-form";
-import './index.css';
 import { PageConfig } from "../../types/common";
+import dayjs from "dayjs";
+import { useOptions } from "./hooks/useOptions";
+import './index.css';
 
 const tableColumns: PrimaryTableCol[] = [
   {
@@ -12,34 +14,21 @@ const tableColumns: PrimaryTableCol[] = [
     title: 'id',
   },
   {
-    colKey: 'action',
-    title: '操作',
-  },
-  {
     colKey: 'source',
     title: '来源',
   },
   {
-    colKey: 'createTime',
+    colKey: 'action',
+    title: '操作',
+  },
+  {
+    colKey: 'status',
+    title: '状态',
+  },
+  {
+    colKey: 'create_time',
     title: '创建日期',
-  },
-];
-
-const searchBarSchema: BaseFormItemProps[] = [
-  {
-    name: 'action',
-    label: '操作',
-    component: <Input/>
-  },
-  {
-    name: 'source',
-    label: '来源',
-    component: <Input/>
-  },
-  {
-    name: 'createTime',
-    label: '创建日期',
-    component: <DateRangePicker clearable valueType="time-stamp"/>
+    cell: ({ row }) => dayjs(row['create_time']).format('YYYY-MM-DD HH:mm:ss')
   },
 ];
 
@@ -53,27 +42,59 @@ const DailyList: React.FC = () => {
   });
   const [total, setTotal] = useState<number>(0)
 
+  const { statusOptions, sourceOptions } = useOptions();
+
+  const searchBarSchema: BaseFormItemProps[] = useMemo(() => [
+    {
+      name: 'source',
+      label: '来源',
+      component: <Select options={sourceOptions} clearable/>
+    },
+    {
+      name: 'action',
+      label: '操作',
+      component: <Input/>
+    },
+    {
+      name: 'status',
+      label: '状态',
+      component: <Select options={statusOptions} clearable/>
+    },
+    {
+      name: 'createTime',
+      label: '创建日期',
+      component: <DateRangePicker clearable valueType="time-stamp"/>
+    },
+  ], [statusOptions, sourceOptions]);
+
   const setData = useCallback(async () => {
     setIsLoading(true);
     try {
       const values = searchBarRef.current?.getValues();
-      const { createTime, source, action } = values;
-      const [createTimeStart, createTimeEnd ] = createTime ?? [];
+      const { createTime, source, action, status } = values;
+      const [create_time_start, create_time_end ] = createTime ?? [];
       const resp = await dailyListReq({
-        params: {
+        body: {
           source,
           action,
-          createTimeStart,
-          createTimeEnd,
+          status,
+          create_time_start,
+          create_time_end,
           pageSize: pageConfig.pageSize,
           pageNum: pageConfig.pageNum,
         }
-      }, true);
-      const { data } = resp;
-      const { total, records } = data;
-      setTableData(records);
-      setTotal(total);
+      });
+      const { data, code, msg } = resp;
+      if(code === 0) {
+        const { total, records } = data;
+        setTableData(records);
+        setTotal(total);
+      } else {
+        message.error('请求失败');
+        console.error(msg);
+      }
     } catch (error) {
+      message.error('请求出错');
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -82,7 +103,6 @@ const DailyList: React.FC = () => {
 
   const onChange = (pageInfo: PageInfo) => {
     const { current, pageSize } = pageInfo;
-    console.log(pageInfo)
     setPageConfig({
       ...pageConfig,
       pageNum: current,
