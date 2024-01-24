@@ -55,7 +55,8 @@ const fastify = Fastify({
 
 // redis
 fastify.register(FastifyRedis, {
-  host: '127.0.0.1'
+  host: config.redis.host,
+  port: config.redis.port,
 })
 
 // mysql
