@@ -26,6 +26,11 @@
 ```bash
 git clone https://github.com/why-not-lay/daily-summary.git
 ```
+**切换目录**
+```bash
+cd ./daily-summary/api-interceptor
+```
+
 **配置**
 
 在项目根目录下创建 `.env` 文件，并在里面进行相应的配置，相关配置项可以看后面的配置项说明
