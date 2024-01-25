@@ -32,12 +32,6 @@ git clone https://github.com/why-not-lay/daily-summary.git
 
 **执行代码**
 
-通过 docker-compose 运行
-```bash
-docker-compose up -d
-```
-> 注意：执行该指令前需要先创建相关的网络，如果选择使用默认网络，可将 `docker-compose.yaml` 中相关的 networks 设置删去
-
 通过 docker 运行:
 1. 构建镜像
 ```bash
