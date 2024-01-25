@@ -1,0 +1,13 @@
+version: '3'
+services:
+  nodejs-app:
+    build: .
+    ports:
+      - "127.0.0.1:10000:10000"
+    networks:
+      base_d_net:
+        ipv4_address: 172.20.1.2
+
+networks:
+  base_d_net:
+    external: true
