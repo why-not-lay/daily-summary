@@ -11,6 +11,10 @@ import { RespWrapper } from './wrapper/resp.js';
 import { errorMapping } from './errors/constant.js';
 import { SelfError } from './errors/self-error.js';
 import { encrypt } from './interceptor/encrypt.js';
+import { requestLogInterceptor } from './interceptor/request-log.js';
+import { responseLogInterceptor } from './interceptor/response-log.js';
+import { LogWrapper } from './wrapper/log.js';
+import { ErrLogInfo, LogType, MsgLogInfo } from './types/log.js';
 
 interface ApiRecord {
   id?: number,
@@ -53,6 +57,9 @@ const fastify = Fastify({
   },
 }).withTypeProvider<JsonSchemaToTsProvider>();
 
+// 设置 logger
+LogWrapper.setLogger(fastify.log.info.bind(fastify.log));
+
 // redis
 fastify.register(FastifyRedis, {
   host: config.redis.host,
@@ -75,14 +82,23 @@ fastify.register(FastifyKnex, {
 fastify.register(FastifyReplyFrom);
 
 // 拦截
+fastify.addHook('onRequest', requestLogInterceptor);
 fastify.addHook('onRequest', whiteListInterceptor);
 fastify.addHook('preValidation', decrypt);
 fastify.addHook('preSerialization', encrypt);
+fastify.addHook('onResponse', responseLogInterceptor);
 
 // 错误处理
 fastify.setErrorHandler((error: FastifyError, req: FastifyRequest, reply: FastifyReply) => {
-  const { code } = error;
+  const { code, message: realMsg, stack } = error;
   const { statusCode, code: realCode, msg } = errorMapping[code] ?? errorMapping.ERROR_UNKNOWN;
+  const infos: ErrLogInfo = {
+    msg,
+    stack,
+    realMsg,
+    code: realCode,
+  }
+  LogWrapper.log(LogType.ERR, infos);
   reply.status(statusCode).send(RespWrapper.error({
     code: realCode,
     msg
@@ -101,8 +117,13 @@ const getPairs = async (apis: string[], flag = FLAGS.BASE) => {
   if(uncached.length === 0){
     return pairs;
   }
+
   const sql = fastify.knex.select('origin', 'api').from<ApiRecord>(TABLE).where('flag', flag).andWhere(builder => builder.whereIn('api', uncached.map(pair => pair.api))).toString();
-  fastify.log.info(sql)
+  const infos: MsgLogInfo = {
+    msg: sql,
+  }
+  LogWrapper.log(LogType.MSG, infos);
+
   const res: ApiOriginPair[] = await fastify.knex.select('origin', 'api').from<ApiRecord>(TABLE).where('flag', flag).andWhere(builder => builder.whereIn('api', uncached.map(pair => pair.api)));
   if(res.length > 0) {
     const updates: Record<string, string> = {};
@@ -165,7 +186,11 @@ fastify.post<{
     const apis = pairs.map(pair => pair.api);
 
     const sql = fastify.knex(TABLE).insert(updates).onConflict('api').merge(['origin', 'update_time', 'flag']).toString();
-    fastify.log.info(sql)
+    const infos: MsgLogInfo = {
+      msg: sql,
+    }
+    LogWrapper.log(LogType.MSG, infos);
+
     await fastify.knex(TABLE).insert(updates).onConflict('api').merge(['origin', 'update_time', 'flag']);
     // 清除旧缓存
     await fastify.redis.hdel(CACHE_KEY, ...apis);
@@ -206,7 +231,11 @@ fastify.post(
         flag: targetFlag,
         update_time: Date.now(),
       }).whereIn('api', apis).toString();
-      fastify.log.info(sql)
+      const infos: MsgLogInfo = {
+        msg: sql,
+      }
+      LogWrapper.log(LogType.MSG, infos);
+
       await fastify.knex(TABLE).update({
         flag: targetFlag,
         update_time: Date.now(),

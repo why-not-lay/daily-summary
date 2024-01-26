@@ -7,6 +7,8 @@ import FastifyKnex from "./plugins/fastify-knex.js";
 import { config } from './config/index.js';
 import { RespWrapper } from './wrapper/resp.js';
 import { errorMapping } from './errors/constant.js';
+import { LogWrapper } from './wrapper/log.js';
+import { ErrLogInfo, LogType, MsgLogInfo } from './types/log.js';
 
 const request = Axios.create();
 
@@ -41,6 +43,9 @@ const fastify = Fastify({
     stream: logStream,
   },
 }).withTypeProvider<JsonSchemaToTsProvider>();
+
+// logger
+LogWrapper.setLogger(fastify.log.info.bind(fastify.log));
 
 fastify.register(FastifyGracefulShutdown);
 // mysql
@@ -78,18 +83,29 @@ fastify.addHook('onReady', async () => {
     })
     const { code, msg } = resp.data;
     if(code === 0) {
-      fastify.log.info('接口绑定成功');
+      const logInfo: MsgLogInfo = {
+        msg: '接口绑定成功',
+      }
+      LogWrapper.log(LogType.MSG, logInfo);
     } else {
-      fastify.log.error(`[接口绑定失败]: ${msg}`);
+      const logInfo: ErrLogInfo = {
+        realMsg: msg,
+        msg: '接口绑定失败',
+        code,
+      }
+      LogWrapper.log(LogType.ERR, logInfo);
     }
   } catch (error) {
-    fastify.log.error(`[接口绑定失败]: 绑定过程出错`);
     throw error;
   }
 });
 
 fastify.addHook('onClose', async () => {
   try {
+    const logInfo: MsgLogInfo = {
+      msg: '接口解绑',
+    }
+    LogWrapper.log(LogType.MSG, logInfo);
     const resp = await request('http://127.0.0.1:3000/unbind', {
       method: 'post',
       headers: {
@@ -99,20 +115,34 @@ fastify.addHook('onClose', async () => {
     });
     const { code, msg } = resp.data;
     if(code === 0) {
-      fastify.log.info('接口解绑成功');
+      const logInfo: MsgLogInfo = {
+        msg: '接口解绑成功',
+      }
+      LogWrapper.log(LogType.MSG, logInfo);
     } else {
-      fastify.log.error(`[接口解绑失败]: ${msg}`);
+      const logInfo: ErrLogInfo = {
+        realMsg: msg,
+        msg: '接口解绑失败',
+        code,
+      }
+      LogWrapper.log(LogType.ERR, logInfo);
     }
   } catch (error) {
-    fastify.log.error(`[接口解绑失败]: 解绑过程出错`);
     throw error;
   }
 });
 
 // 错误处理
 fastify.setErrorHandler((error: FastifyError, req: FastifyRequest, reply: FastifyReply) => {
-  const { code } = error;
+  const { code, stack, message: realMsg } = error;
   const { statusCode, code: realCode, msg } = errorMapping[code] ?? errorMapping.ERROR_UNKNOWN;
+  const infos: ErrLogInfo = {
+    msg,
+    stack,
+    realMsg,
+    code: realCode,
+  }
+  LogWrapper.log(LogType.ERR, infos);
   reply.status(statusCode).send(RespWrapper.error({
     code: realCode,
     msg
@@ -156,8 +186,13 @@ fastify.post(
       flag: targetFlag,
       create_time: Date.now(),
     };
+
     const sql = fastify.knex(TABLE).insert(update).toString();
-    fastify.log.info(sql);
+    const infos: MsgLogInfo = {
+      msg: sql,
+    }
+    LogWrapper.log(LogType.MSG, infos);
+
     const ids: string[] = await fastify.knex(TABLE).insert(update).returning('id');
     return reply.send(RespWrapper.success({ ids }));
   }
@@ -203,6 +238,7 @@ fastify.post(
     if (status) {
       conditions.status = status;
     }
+
     const sql = fastify.knex.select('id', 'source', 'action', 'status', 'prev', 'create_time')
                                       .from<RecordRecord>(TABLE)
                                       .where(conditions)
@@ -214,7 +250,11 @@ fastify.post(
                                       .offset((pageNum! - 1) * pageSize!)
                                       .limit(pageSize!)
                                       .toString();
-    fastify.log.info(sql);
+    const infos: MsgLogInfo = {
+      msg: sql,
+    }
+    LogWrapper.log(LogType.MSG, infos);
+
     const records = await fastify.knex.select('id', 'source', 'action', 'status', 'prev', 'create_time')
                                       .from<RecordRecord>(TABLE)
                                       .where(conditions)
@@ -249,8 +289,13 @@ fastify.post(
     const { type } = req.body;
     let res: any[] = [];
     if (['source', 'status'].includes(type ?? '')) {
+
       const sql = fastify.knex.distinct(type!).from<RecordRecord>(TABLE).toString();
-      fastify.log.info(sql);
+      const infos: MsgLogInfo = {
+        msg: sql,
+      }
+      LogWrapper.log(LogType.MSG, infos);
+
       res = await fastify.knex.distinct(type!).from<RecordRecord>(TABLE);
       res = res.map(item => item[type!]);
     }
