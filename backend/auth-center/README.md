@@ -58,6 +58,8 @@ node ./dist/run.js
 SERVER_HOST=0.0.0.0
 # 服务端口
 SERVER_PORT=10052
+# 是否需要注册服务
+SERVER_IS_REGISTER=1
 # 当前服务运行 origin
 SERVER_ORIGIN='http://127.0.0.1:10052'
 # 服务注册 origin
