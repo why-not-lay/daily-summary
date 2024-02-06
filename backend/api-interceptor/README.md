@@ -72,6 +72,8 @@ SERVER_HOST=0.0.0.0
 SERVER_PORT=10000
 # 服务器注册与解绑接口的白名单，并不是所有接口白名单
 SERVER_WHITE_LIST='127.0.0.1'
+# token服务
+SERVER_AUTH_ORIGIN='http://127.0.0.1:10052'
 
 ###############
 # db config
@@ -101,8 +103,6 @@ REDIS_PORT=6379
 ###############
 # AES-256-CBC 加密 IV
 KEY_IV=
-# AES-256-CBC 加密密钥
-KEY_AES=
 # RSA 公钥
 KEY_RSA=
 ```
