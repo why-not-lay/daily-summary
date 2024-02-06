@@ -9,7 +9,15 @@ import { ActionTypes, useDispatchContext } from "../../context/context-provider"
 
 const schema: BaseFormItemProps[] = [
   {
-    name: 'key',
+    name: 'username',
+    label: '',
+    component: <Input clearable={true} placeholder="请输入用户名"/>,
+    rules: [
+      { required: true, message: '请输入用户名', type:'error'},
+    ]
+  },
+  {
+    name: 'password',
     label: '',
     component: <Input type="password" clearable={true} placeholder="请输入密钥"/>,
     rules: [
@@ -32,17 +40,22 @@ export const UserAuth: React.FC = () => {
 
   const onSubmit = async (e: SubmitContext) => {
     if(e.validateResult === true) {
-      const { key: rawKey } = e.fields;
-      const hash = md.sha256.create().update(rawKey).digest().toHex();
-      const body = { key: hash };
+      const { password, username } = e.fields;
+      const hash = md.sha256.create().update(password).digest().toHex();
+      const body = { username, password: hash };
       try {
-        const { code, msg } = await authUserReq({ body });
+        const { code, msg, data } = await authUserReq({ body });
         if(code === 0) {
+          const { token: randomId, tokenId } = data;
+          const token = new Array(randomId.length).fill(0).map((_, idx) => (
+            Number.parseInt(randomId[idx], 16) ^ Number.parseInt(hash[idx], 16)
+          )).map(num => (num).toString(16)).join('');
           message.success('通过验证');
           dispatch({
             type: ActionTypes.UPDATE_STATE,
             payloads: {
-              key: hash,
+              token,
+              tid: tokenId,
               isAuth: true,
             }
           })

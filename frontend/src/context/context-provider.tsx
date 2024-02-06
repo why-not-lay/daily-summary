@@ -6,7 +6,8 @@ export enum ActionTypes {
 
 interface GlobalState {
   isAuth?: boolean,
-  key?: string,
+  token?: string,
+  tid?: string,
 }
 
 interface Action {

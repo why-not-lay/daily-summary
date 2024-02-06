@@ -8,7 +8,7 @@ export type RequestConfig = {
   url: string;
   method?: 'GET' | 'POST';
   headers?: Record<string, string>;
-  body?: Record<string, string>;
+  body?: Record<string, any>;
   params?: Record<string, string>;
   isMock?: boolean,
 } & Record<string, any>

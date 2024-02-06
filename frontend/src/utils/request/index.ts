@@ -25,11 +25,12 @@ const INIT_KEYS = [
 
 const before = (config: RequestConfig) => {
   const { url, headers, body, method } = config;
-  const { key } = getView();
+  const { token, tid } = getView();
   const isEncrypt = process.env.REACT_APP_ENCRYPTED
   if (isEncrypt && method === 'POST') {
-    const encrypted = ['/auth/user'].includes(url) ? encryptByRSA(JSON.stringify(body)) : encryptByAes(key!, JSON.stringify(body));
+    const encrypted = ['/auth/user'].includes(url) ? encryptByRSA(JSON.stringify(body)) : encryptByAes(token!, JSON.stringify(body));
     config.body = {
+      tid,
       xxx: encrypted
     }
     if (headers) {
@@ -47,10 +48,10 @@ const after = (
 ) => {
   const { headers, resp } = config;
   const encrypted = headers.get('encrypted');
-  const { key } = getView();
+  const { token } = getView();
   if(encrypted) {
     const { xxx } = resp;
-    const decrypted = decryptByAes(key!, xxx);
+    const decrypted = decryptByAes(token!, xxx);
     config.resp = JSON.parse(decrypted);
   }
 }
