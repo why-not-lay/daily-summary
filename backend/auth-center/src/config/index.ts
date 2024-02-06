@@ -5,6 +5,7 @@ interface ApiServerConfig {
     port: number,
     host: string,
     origin: string,
+    isRegister: boolean,
     registerOrigin: string,
     defaultTokenLifetime: number,
     defaultTokenUnlimit: number,
@@ -26,6 +27,7 @@ export const config: ApiServerConfig = {
     host: process.env.SERVER_HOST ?? 'localhost',
     port: process.env.SERVER_PORT ? Number.parseInt(process.env.SERVER_PORT) : 3000,
     origin: process.env.SERVER_ORIGIN ?? '',
+    isRegister: !!process.env.SERVER_IS_REGISTER,
     registerOrigin: process.env.SERVER_REGISTER_ORIGIN ?? '',
     // 单位为秒
     defaultTokenLifetime: process.env.SERVER_DEFAULT_TOKEN_LIFETIME ? Number.parseInt(process.env.SERVER_DEFAULT_TOKEN_LIFETIME) : 1 * 24 * 60 * 60,

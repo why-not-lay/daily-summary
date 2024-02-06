@@ -13,7 +13,7 @@ CREATE TABLE `users` (
 
 -- 创建 tokens 表  
 CREATE TABLE `tokens` (  
-  `tid` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'token id',
+  `tid` CHAR(32) PRIMARY KEY COMMENT 'token id',
   `uid` INT NOT NULL COMMENT '用户 id',
   `type` INT NOT NULL COMMENT 'token 类型',
   `token` CHAR(64) NOT NULL COMMENT 'token',
