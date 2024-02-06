@@ -9,6 +9,7 @@ import { RespWrapper } from './wrapper/resp.js';
 import { errorMapping } from './errors/constant.js';
 import { LogWrapper } from './wrapper/log.js';
 import { ErrLogInfo, LogType, MsgLogInfo } from './types/log.js';
+import { bind, unbind } from './interceptor/register-api.js';
 
 const request = Axios.create();
 
@@ -61,76 +62,10 @@ fastify.register(FastifyKnex, {
   },
 });
 
-const origin = config.server.origin;
-const apis = [
-  '/record/add',
-  '/record/get',
-  '/record/getOpts',
-];
-
-// hook
-fastify.addHook('onReady', async () => {
-  try {
-    const resp = await request({
-      url: `${config.server.registerOrigin}/bind`,
-      method: 'post',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      data: {
-        pairs: apis.map(api => ({ api, origin })),
-      }
-    })
-    const { code, msg } = resp.data;
-    if(code === 0) {
-      const logInfo: MsgLogInfo = {
-        msg: '接口绑定成功',
-      }
-      LogWrapper.log(LogType.MSG, logInfo);
-    } else {
-      const logInfo: ErrLogInfo = {
-        realMsg: msg,
-        msg: '接口绑定失败',
-        code,
-      }
-      LogWrapper.log(LogType.ERR, logInfo);
-    }
-  } catch (error) {
-    throw error;
-  }
-});
-
-fastify.addHook('onClose', async () => {
-  try {
-    const logInfo: MsgLogInfo = {
-      msg: '接口解绑',
-    }
-    LogWrapper.log(LogType.MSG, logInfo);
-    const resp = await request('http://127.0.0.1:3000/unbind', {
-      method: 'post',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      data: { apis }
-    });
-    const { code, msg } = resp.data;
-    if(code === 0) {
-      const logInfo: MsgLogInfo = {
-        msg: '接口解绑成功',
-      }
-      LogWrapper.log(LogType.MSG, logInfo);
-    } else {
-      const logInfo: ErrLogInfo = {
-        realMsg: msg,
-        msg: '接口解绑失败',
-        code,
-      }
-      LogWrapper.log(LogType.ERR, logInfo);
-    }
-  } catch (error) {
-    throw error;
-  }
-});
+if(config.server.isRegister) {
+  fastify.addHook('onReady', bind);
+  fastify.addHook('onClose', unbind);
+}
 
 // 错误处理
 fastify.setErrorHandler((error: FastifyError, req: FastifyRequest, reply: FastifyReply) => {
