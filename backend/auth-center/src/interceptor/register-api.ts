@@ -9,9 +9,10 @@ const request = Axios.create();
 const origin = config.server.origin;
 const apis = [
   '/auth/user',
-  '/auth/token',
   '/token/create',
   '/token/delete',
+  '/token/getByTid',
+  '/token/get',
 ];
 
 const bind = async () => {
