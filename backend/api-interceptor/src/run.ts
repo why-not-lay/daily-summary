@@ -42,6 +42,13 @@ enum FLAGS {
   ERR = 1 << 3  
 }
 
+declare module 'fastify' {
+  interface FastifyRequest {
+    token: string,
+  }
+}
+
+
 const TABLE = 'apis';
 const CACHE_KEY = 'api_cache';
 
@@ -56,6 +63,9 @@ const fastify = Fastify({
     stream: logStream,
   },
 }).withTypeProvider<JsonSchemaToTsProvider>();
+
+// 传递加密 token
+fastify.decorateRequest('token', '');
 
 // 设置 logger
 LogWrapper.setLogger(fastify.log.info.bind(fastify.log));
@@ -240,34 +250,6 @@ fastify.post(
         flag: targetFlag,
         update_time: Date.now(),
       }).whereIn('api', apis);
-    }
-    return reply.send(RespWrapper.success(null));
-  }
-)
-
-/**
- * 用户校验
- */
-fastify.post(
-  '/auth/user',
-  {
-    schema: {
-      // 请求体
-      body: {
-        type: 'object',
-        properties: {
-          key: {
-            type: 'string'
-          }
-        },
-        required: ['key']
-      }
-    }
-  }, 
-  async (req, reply) => {
-    const { key } = req.body;
-    if(key !== config.key.aes) {
-      throw new SelfError('未通过用户认证', errorMapping.ERROR_AUTH.type);
     }
     return reply.send(RespWrapper.success(null));
   }

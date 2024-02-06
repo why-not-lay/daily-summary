@@ -5,6 +5,7 @@ interface ApiServerConfig {
     port: number,
     host: string,
     whiteList: string[],
+    authOrigin: string,
   },
   db: {
     host: string,
@@ -13,7 +14,6 @@ interface ApiServerConfig {
     password: string,
   }
   key: {
-    aes: string,
     rsa: string,
     iv: string,
   },
@@ -28,6 +28,7 @@ export const config: ApiServerConfig = {
     host: process.env.SERVER_HOST ?? 'localhost',
     port: process.env.SERVER_PORT ? Number.parseInt(process.env.SERVER_PORT) : 3000,
     whiteList: process.env.SERVER_WHITE_LIST?.split(',') ?? [],
+    authOrigin: process.env.SERVER_AUTH_ORIGIN ?? '',
   },
   db: {
     host : process.env.DB_HOST ?? 'localhost',
@@ -36,7 +37,6 @@ export const config: ApiServerConfig = {
     password : process.env.DB_PASSWORD ?? '',
   },
   key: {
-    aes: process.env.KEY_AES ?? new Array(4).fill(0).map(() => "0123456789"[Math.floor(Math.random() * 10)]).join(''),
     rsa: process.env.KEY_RSA ?? '',
     iv: process.env.KEY_IV ?? 'QXk1T5WteDpmhR2h',
   },
