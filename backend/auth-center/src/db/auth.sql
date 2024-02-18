@@ -3,7 +3,7 @@ USE auth_db;
   
 -- 创建 users 表  
 CREATE TABLE `users` (  
-  `uid` INT AUTO_INCREMENT PRIMARY KEY COMMENT '用户id',
+  `uid` CHAR(32) PRIMARY KEY COMMENT '用户id',
   `username` VARCHAR(255) NOT NULL COMMENT '用户名',
   `passwd` CHAR(64) NOT NULL COMMENT '密码',
   `create_time` BIGINT NOT NULL COMMENT '创建时间',  
@@ -14,7 +14,7 @@ CREATE TABLE `users` (
 -- 创建 tokens 表  
 CREATE TABLE `tokens` (  
   `tid` CHAR(32) PRIMARY KEY COMMENT 'token id',
-  `uid` INT NOT NULL COMMENT '用户 id',
+  `uid` CHAR(32) NOT NULL COMMENT '用户 id',
   `type` INT NOT NULL COMMENT 'token 类型',
   `token` CHAR(64) NOT NULL COMMENT 'token',
   `create_time` BIGINT NOT NULL COMMENT '创建时间',

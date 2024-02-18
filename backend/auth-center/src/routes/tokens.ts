@@ -11,7 +11,7 @@ export const TOKEN_TABLE = 'tokens'
 
 export interface TokenRecord {
   tid: string,
-  uid: number,
+  uid: string,
   token: string,
   create_time: number,
   expire_time: number,
@@ -45,7 +45,7 @@ export const registerTokensRoutes = (fastify: FastifyInstance<
           type: 'object',
           properties: {
             uid: {
-              type: 'number',
+              type: 'string',
             },
           },
           required: ['uid']
@@ -83,7 +83,7 @@ export const registerTokensRoutes = (fastify: FastifyInstance<
   )
 
   /**
-   * 根据 tid 获取 token
+   * 根据 tid 获取 token 信息
    */
   fastify.post(
     '/token/getByTid',
@@ -103,8 +103,12 @@ export const registerTokensRoutes = (fastify: FastifyInstance<
     async (req, reply)=> {
       const { tid } = req.body;
       const flag = FLAGS.BASE;
+      let uid = '';
       let token = await fastify.redis.get(`tid:${tid}`);
-      if(!token) {
+      if(token) {
+        const matchUid = await fastify.redis.get(`token:${token}`);
+        uid = matchUid ?? '';
+      } else {
         const sql = fastify.knex
                             .select('token', 'uid')
                             .from(TOKEN_TABLE)
@@ -128,13 +132,14 @@ export const registerTokensRoutes = (fastify: FastifyInstance<
                             .andWhere('expire_time', '>', Date.now());
         token = records.length ? records[0].token : '';
         if(token) {
+          uid = records[0].uid;
           await Promise.all([
-            await fastify.redis.set(`token:${token}`, `${records[0].uid}`, 'EX', config.server.defaultTokenLifetime),
+            await fastify.redis.set(`token:${token}`, `${uid}`, 'EX', config.server.defaultTokenLifetime),
             await fastify.redis.set(`tid:${tid}`, `${token}`, 'EX', config.server.defaultTokenLifetime),
           ]);
         }
       }
-      return reply.send(RespWrapper.success({ token }));
+      return reply.send(RespWrapper.success({ token, uid }));
     }
   )
 
@@ -150,7 +155,7 @@ export const registerTokensRoutes = (fastify: FastifyInstance<
           type: 'object',
           properties: {
             uid: {
-              type: 'number'
+              type: 'string'
             },
             pageSize: {
               type: 'number',
