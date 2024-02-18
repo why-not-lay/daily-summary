@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "compile": "tsc",
+    "build": "tsc",
     "dev": "rm -rf ./dist && tsc && node ./dist/run.js"
   },
   "author": "losor",
