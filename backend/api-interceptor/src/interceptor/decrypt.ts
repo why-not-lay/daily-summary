@@ -25,8 +25,9 @@ const decryptFromAES = (data: string, key: string) => {
   return decrypted;  
 }
 
-const getToken = async (tid: string) => {
+const getTokenInfo = async (tid: string) => {
   let token = '';
+  let uid = '';
   try {
     const resp = await request({
       url: `${config.server.authOrigin}/token/getByTid`,
@@ -41,8 +42,9 @@ const getToken = async (tid: string) => {
     const { code, msg, data } = resp.data;
     if(code === 0) {
       token = data.token;
+      uid = data.uid;
       const logInfo: MsgLogInfo = {
-        msg: `${tid}-${token}`
+        msg: `${tid}-${token}-${uid}`
       }
       LogWrapper.log(LogType.MSG, logInfo);
     } else {
@@ -63,7 +65,7 @@ const getToken = async (tid: string) => {
     }
     LogWrapper.log(LogType.ERR, logInfo);
   } finally {
-    return token;
+    return {token, uid};
   }
 }
 
@@ -71,11 +73,25 @@ export const decrypt = async (req: FastifyRequest, reply: FastifyReply) => {
   const { headers, body, method, url } = req;
   const path = url.split('?')?.[0] ?? ''
   const { encrypted } = headers;
+  const { xxx, tid } = (body as any);
+  let token = '';
+  let uid = '';
   if (method.toLocaleLowerCase() === 'post' && ['/bind', '/unbind'].includes(path)) {
     return;
   }
+
+  // 非认证接口获取 token 信息
+  if(path !== '/auth/user') {
+    if( typeof tid !== 'string') {
+      throw new SelfError('数据类型有误', errorMapping.ERROR_REQ_BODY_PARAMS.type);
+    }
+    const tokenInfo = await getTokenInfo(tid);
+    token = tokenInfo.token;
+    uid = tokenInfo.uid;
+  }
+
+  // 已加密数据需要解密
   if (encrypted && method.toLocaleLowerCase() === 'post') {
-    const { xxx, tid } = (body as any);
     if(typeof xxx !== 'string') {
       throw new SelfError('数据类型有误', errorMapping.ERROR_REQ_BODY_PARAMS.type);
     }
@@ -84,14 +100,11 @@ export const decrypt = async (req: FastifyRequest, reply: FastifyReply) => {
       if(path === '/auth/user') {
         decrypted = decryptFromRSA(xxx);
       } else {
-        if(typeof tid !== 'string') {
-          throw new SelfError('数据类型有误', errorMapping.ERROR_REQ_BODY_PARAMS.type);
-        }
-        const token = await getToken(tid);
         decrypted = decryptFromAES(xxx, token);
         req.token = token;
       }
       req.body = JSON.parse(decrypted);
+      (req.body as any).uid = uid;
     } catch (error) {
       throw new SelfError('数据解密失败', errorMapping.ERROR_DECRYPT.type);
     }
