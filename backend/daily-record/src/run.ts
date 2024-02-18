@@ -1,7 +1,6 @@
 import { JsonSchemaToTsProvider } from '@fastify/type-provider-json-schema-to-ts'
 import Fastify, { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import FastifyGracefulShutdown from 'fastify-graceful-shutdown';
-import Axios from 'axios';
 import { createWriteStream } from 'pino-http-send';
 import FastifyKnex from "./plugins/fastify-knex.js";
 import { config } from './config/index.js';
@@ -10,12 +9,12 @@ import { errorMapping } from './errors/constant.js';
 import { LogWrapper } from './wrapper/log.js';
 import { ErrLogInfo, LogType, MsgLogInfo } from './types/log.js';
 import { bind, unbind } from './interceptor/register-api.js';
-
-const request = Axios.create();
+import { SelfError } from './errors/self-error.js';
 
 interface RecordRecord {
-  id?: number,
-  prev?: number,
+  uid: string,
+  id: string,
+  prev?: string,
   source: string,
   action: string,
   status: string,
@@ -101,34 +100,52 @@ fastify.post(
       body: {
         type: 'object',
         properties: {
-          prev: { type: 'number' },
-          source: { type: 'string' }, 
-          action: { type: 'string' },
-          status: { type: 'string' },
+          uid: {type: 'string'},
+          records: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: {type: 'string'},
+                prev: { type: 'string' },
+                source: { type: 'string' }, 
+                action: { type: 'string' },
+                status: { type: 'string' },
+                create_time: {type: 'number'},
+              },
+              required: ['id', 'source', 'action', 'create_time'],
+            },
+          },
         },
-        required: ['source', 'action']
+        required: ['records', 'uid'],
       }
     }
   },
   async (req, reply) => {
-    const { prev, source, action, status } = req.body;
+    const { records, uid } = req.body;
+    if(records.length === 0) {
+      return reply.send(RespWrapper.success({ ids: [] }));
+    }
     const targetFlag = FLAGS.BASE;
-    const update = {
-      prev: prev ? prev : -1,
-      source,
-      action,
-      status,
+    // 检测数据格式
+    const isTypeOK = records.every(record => record.id.length === 16);
+    if(!isTypeOK) {
+      throw new SelfError('数据类型有误', errorMapping.ERROR_REQ_BODY_PARAMS.type);
+    }
+    const updates = records.map(record => ({
+      ...record,
+      uid,
+      prev: record.prev ? record.prev : Array.from({length: 16}, () => '-').join(''),
       flag: targetFlag,
-      create_time: Date.now(),
-    };
+    }));
 
-    const sql = fastify.knex(TABLE).insert(update).toString();
+    const sql = fastify.knex(TABLE).insert(updates).toString();
     const infos: MsgLogInfo = {
       msg: sql,
     }
     LogWrapper.log(LogType.MSG, infos);
 
-    const ids: string[] = await fastify.knex(TABLE).insert(update).returning('id');
+    const ids: string[] = await fastify.knex(TABLE).insert(updates);
     return reply.send(RespWrapper.success({ ids }));
   }
 );
@@ -152,18 +169,20 @@ fastify.post(
             type: 'number',
             default: 1,
           },
+          uid: { type: 'string' },
           source: { type: 'string' }, 
           action: { type: 'string' },
           status: { type: 'string' },
           create_time_start: {type: 'number'},
           create_time_end: {type: 'number'},
         },
+        required: ['uid'],
       }
     }
   },
   async (req, reply) => {
-    const { pageNum, pageSize, source, action, status, create_time_start, create_time_end } = req.body;
-    const conditions: Record<string, any> = {};
+    const { pageNum, pageSize, source, action, status, create_time_start, create_time_end, uid } = req.body;
+    const conditions: Record<string, any> = { uid };
     if (source) {
       conditions.source = source;
     }
@@ -215,23 +234,24 @@ fastify.post(
       body: {
         type: 'object',
         properties: {
+          uid: { type: 'string' },
           type: { type: 'string' },
         },
+        required: ['uid'],
       },
     }
   },
   async (req, reply) => {
-    const { type } = req.body;
+    const { type, uid } = req.body;
     let res: any[] = [];
     if (['source', 'status'].includes(type ?? '')) {
-
-      const sql = fastify.knex.distinct(type!).from<RecordRecord>(TABLE).toString();
+      const sql = fastify.knex.distinct(type!).from<RecordRecord>(TABLE).where({ uid }).toString();
       const infos: MsgLogInfo = {
         msg: sql,
       }
       LogWrapper.log(LogType.MSG, infos);
 
-      res = await fastify.knex.distinct(type!).from<RecordRecord>(TABLE);
+      res = await fastify.knex.distinct(type!).from<RecordRecord>(TABLE).where({ uid });
       res = res.map(item => item[type!]);
     }
     return reply.send(RespWrapper.success({ res }));
