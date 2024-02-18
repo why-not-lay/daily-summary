@@ -33,7 +33,7 @@ enum FLAGS {
 const TABLE = 'daily_records';
 
 const logStream = createWriteStream({
-  url: 'http://localhost:10050/log',
+  url: `${config.server.logOrigin}/log`,
 });
 
 const fastify = Fastify({

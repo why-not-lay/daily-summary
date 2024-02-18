@@ -16,7 +16,7 @@ import { registerAuthRoutes, registerTokensRoutes } from './routes/index.js';
 
 
 const logStream = createWriteStream({
-  url: 'http://localhost:10050/log',
+  url: `${config.server.logOrigin}/log`,
 });
 
 const fastify = Fastify({

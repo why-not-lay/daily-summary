@@ -9,6 +9,7 @@ interface ApiServerConfig {
     registerOrigin: string,
     defaultTokenLifetime: number,
     defaultTokenUnlimit: number,
+    logOrigin: string,
   },
   db: {
     host: string,
@@ -32,7 +33,8 @@ export const config: ApiServerConfig = {
     // 单位为秒
     defaultTokenLifetime: process.env.SERVER_DEFAULT_TOKEN_LIFETIME ? Number.parseInt(process.env.SERVER_DEFAULT_TOKEN_LIFETIME) : 1 * 24 * 60 * 60,
     // 单位为秒
-    defaultTokenUnlimit: process.env.SERVER_DEFAULT_TOKEN_UNLIMIT ? Number.parseInt(process.env.SERVER_DEFAULT_TOKEN_UNLIMIT) : 365 * 24 * 60 * 60 * 100
+    defaultTokenUnlimit: process.env.SERVER_DEFAULT_TOKEN_UNLIMIT ? Number.parseInt(process.env.SERVER_DEFAULT_TOKEN_UNLIMIT) : 365 * 24 * 60 * 60 * 100,
+    logOrigin: process.env.SERVER_LOG_ORIGIN ?? '',
   },
   db: {
     host : process.env.DB_HOST ?? 'localhost',

@@ -8,6 +8,7 @@ interface ApiServerConfig {
     isRegister: boolean,
     whiteList: string[],
     registerOrigin: string,
+    logOrigin: string,
   },
   db: {
     host: string,
@@ -25,7 +26,8 @@ export const config: ApiServerConfig = {
     whiteList: process.env.SERVER_WHITE_LIST?.split(',') ?? [],
     isRegister: !!process.env.SERVER_IS_REGISTER,
     origin: process.env.SERVER_ORIGIN ?? '',
-    registerOrigin: process.env.SERVER_REGISTER_ORIGIN ?? ''
+    registerOrigin: process.env.SERVER_REGISTER_ORIGIN ?? '',
+    logOrigin: process.env.SERVER_LOG_ORIGIN ?? '',
   },
   db: {
     host : process.env.DB_HOST ?? 'localhost',
