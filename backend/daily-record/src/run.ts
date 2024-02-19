@@ -139,14 +139,14 @@ fastify.post(
       flag: targetFlag,
     }));
 
-    const sql = fastify.knex(TABLE).insert(updates).toString();
+    const sql = fastify.knex(TABLE).insert(updates).onConflict('id').ignore().toString();
     const infos: MsgLogInfo = {
       msg: sql,
     }
     LogWrapper.log(LogType.MSG, infos);
 
-    const ids: string[] = await fastify.knex(TABLE).insert(updates);
-    return reply.send(RespWrapper.success({ ids }));
+    await fastify.knex(TABLE).insert(updates).onConflict('id').ignore();
+    return reply.send(RespWrapper.success(null));
   }
 );
 
