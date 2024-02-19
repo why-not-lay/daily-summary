@@ -70,7 +70,8 @@ const request: <T = any>(config: RequestConfig) => Promise<Response<T>> = async 
 
   before(config);
 
-  const urlObj = new URL(url, window.location.origin);
+  // 数据请求接口统一添加 /api 前缀，方便转发
+  const urlObj = new URL(`/api${url}`, window.location.origin);
   Object.entries(params).forEach(entry => {
     const [key, val] = entry;
     urlObj.searchParams.set(key, val);
