@@ -39,7 +39,7 @@ fastify.post(
     const { body } = req;
     const { logs } = (body as { logs: any[] });
     const { name } = logs[0] ?? {};
-    const updates = logs.map(log => ({
+    const updates = logs.filter(log => log.isCustom).map(log => ({
       log,
       source: name,
       create_time: Date.now(),
