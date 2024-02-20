@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "页面监听",
+  "version": "1.0",
+  "permissions": [
+    "tabs", "storage"
+  ],
+  "host_permissions": [
+    "http://43.139.110.210:20333/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
