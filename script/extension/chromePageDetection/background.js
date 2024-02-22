@@ -3,10 +3,9 @@ importScripts('main.js');
 let uploadQueue = [];
 const urlMap = new Map();
 const windowMap = new Map();
-const INTERVAL = 1 * 1000;
+const INTERVAL = 30 * 1000;
 const STATUS = {
 	ACTIVATED: 'activated',
-	REMOVED: 'removed',
 }
 const SOURCE = 'browser:chrome';
 // 加密初始值
@@ -64,8 +63,25 @@ const saveData = async (key, value) => {
 	});
 }
 
+const getCurTab = async () => {
+  const queryOptions = { active: true, lastFocusedWindow: true };
+  const [ tab ] = await chrome.tabs.query(queryOptions);
+	const { url, windowId, id: tabId } = tab ?? {};
+	if(isUrl(url) && windowId) {
+		windowMap.set(windowId, tabId);
+		push({
+			id: getID(),
+			source: SOURCE,
+			action: url,
+			status: STATUS.ACTIVATED,
+			create_time: Date.now(),
+		});
+	}
+}
+
 const upload = async () => {
 	try {
+		await getCurTab();
 		const endIdx = uploadQueue.length - 1;
 		if(endIdx >= 0) {
 			await saveData('uploadQueue', uploadQueue);
@@ -73,6 +89,7 @@ const upload = async () => {
 			const resp = await request(pendingUploads);
 			const { code, msg } = resp;
 			if(code === 0) {
+				console.log(`成功上传${endIdx + 1}项`);
 				uploadQueue = uploadQueue.slice(endIdx + 1);
 				await saveData('uploadQueue', uploadQueue);
 			} else {
@@ -103,7 +120,7 @@ const init = async () => {
 		console.error(error);
 	} 
 	// 定时发送队列
-	setInterval(() => {
+	setInterval(async () => {
 		upload();
 	}, INTERVAL);
 }
@@ -125,7 +142,6 @@ const push = (upload) => {
 chrome.tabs.onCreated.addListener((tab) => {
 	const { id, url, pendingUrl} = tab;
 	if(isUrl(url) || isUrl(pendingUrl)) {
-		console.log(`新建标签: ${url ? url : pendingUrl}`);
 		urlMap.set(id, url ? url : pendingUrl);
 	}
 });
@@ -136,7 +152,6 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 	const url = urlMap.get(tabId);
 	if(isUrl(url)) {
 		windowMap.set(windowId, tabId);
-		console.log(`聚焦标签: ${url}`);
 		push({
 			id: getID(),
 			source: SOURCE,
@@ -156,7 +171,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 			if(isUrl(url)) {
 				windowMap.set(windowId, id);
 				urlMap.set(id, url);
-				console.log(`聚焦标签: ${url}`);
 				push({
 					id: getID(),
 					source: SOURCE,
@@ -169,29 +183,12 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 	}
 });
 
-// 监听标签页关闭
-chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
-	const url = urlMap.get(tabId);
-	urlMap.delete(tabId);
-	if(isUrl(url)) {
-		console.log(`关闭标签: ${url}`);
-		push({
-			id: getID(),
-			source: SOURCE,
-			action: url,
-			status: STATUS.REMOVED,
-			create_time: Date.now(),
-		});
-	}
-});
-
 // 聚焦窗口
 chrome.windows.onFocusChanged.addListener((windowId) => {
 	if(windowId !== chrome.windows.WINDOW_ID_NONE) {
 		const tabId = windowMap.get(windowId)
 		const url = urlMap.get(tabId);
 		if(isUrl(url)) {
-			console.log(`聚焦标签: ${url}`);
 			push({
 				id: getID(),
 				source: SOURCE,
