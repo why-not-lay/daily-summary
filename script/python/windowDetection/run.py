@@ -125,14 +125,15 @@ def decryptByAES(data):
 
 def getCurUpload():
     title = GetWindowText(GetForegroundWindow())
-    timestamp = int(time.time() * 1000)
-    dataQueue.put({
-        "id": getID(),
-	    "source": SOURCE,
-	    "action": title,
-	    "status": 'activated',
-	    "create_time": timestamp
-    })
+    if title:
+        timestamp = int(time.time() * 1000)
+        dataQueue.put({
+            "id": getID(),
+	        "source": SOURCE,
+	        "action": title,
+	        "status": 'activated',
+	        "create_time": timestamp
+        })
 
 
 def upload():
