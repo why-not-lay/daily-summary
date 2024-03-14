@@ -1,6 +1,7 @@
 import React from "react";
 import { useStateContext } from "../../context/context-provider";
 import { Navigate, useLocation } from "react-router-dom";
+import { isAllMock } from "../../constant/common";
 
 export const Auth: React.FC<{ children: any }> = ({ children }) => {
   const { pathname, state } = useLocation();
@@ -26,7 +27,7 @@ export const Auth: React.FC<{ children: any }> = ({ children }) => {
   return (
     <>
       {
-        toAuth ? (
+        toAuth && !isAllMock ? (
           <Navigate to={redirectPath} state={redirectState} replace/>
         ) : (
           children

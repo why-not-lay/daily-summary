@@ -1,6 +1,6 @@
 import { REQUEST_URL, RESPONSE_CODE } from "../constant/common";
 import { Fetcher } from "../types/common";
-import { dailyListMocker } from "./mocker/daily-list";
+import { dailyListMocker, dailyOptMocker } from "./mocker/daily-list";
 
 const generateMockerStore = () => {
   const store = new Map<string, Fetcher>();
@@ -30,7 +30,8 @@ const { registerMocker, getMocker } = generateMockerStore();
 /**
  * 注册 mocker
  */
-registerMocker(REQUEST_URL.DAILY_LIST_REQ, dailyListMocker)
+registerMocker(REQUEST_URL.DAILY_LIST_REQ, dailyListMocker);
+registerMocker(REQUEST_URL.DAILY_OPT_REQ, dailyOptMocker);
 
 export {
   registerMocker,

@@ -16,12 +16,19 @@ const ACTION_TYPES =  [
   'link1: end',
 ];
 
+const STATUS_TYPES = [
+  'activated',
+  'inactivated'
+];
+
+const total = 100;
+
 const generateData = () => {
-  const total = 100;
   const totalData = new Array(total).fill(0).map(() => ({
     id: generateRandomId(),
     source: SOURCE_TYPES[Math.floor(Math.random() * SOURCE_TYPES.length)],
     action: ACTION_TYPES[Math.floor(Math.random() * ACTION_TYPES.length)],
+    status: STATUS_TYPES[Math.floor(Math.random() * STATUS_TYPES.length)],
     createTime: Date.now(),
   }));
 
@@ -30,18 +37,20 @@ const generateData = () => {
     pageNum: number,
     filterConfig?: {
       id?: string,
+      status?: string,
       source?: string,
       action?: string,
       createTimeStart?: number,
       createTimeEnd?: number,
     }
   ) => {
-    const { id, source, action, createTimeStart, createTimeEnd } = filterConfig ?? {};
+    const { id, source, action, status, createTimeStart, createTimeEnd } = filterConfig ?? {};
     console.log(filterConfig)
     const filterData = totalData.filter(row => (
       (!id || row.id === id)
       && (!source || row.source === source)
       && (!action || row.action === action)
+      && (!status || row.status === status)
       && (!createTimeStart || !createTimeEnd || (createTimeStart! <= row.createTime && createTimeEnd >= row.createTime))
     ));
     const offset = (pageNum - 1) * pageSize;
@@ -58,8 +67,20 @@ const generateData = () => {
 const getData = generateData();
 
 export const dailyListMocker = async (fetcherParams?: FetcherParams) => {
-  const { params = {} } = fetcherParams ?? {};
-  const { pageSize = 20, pageNum = 1 } = params;
-  const data = getData(pageSize, pageNum, params);
+  const { body = {} } = fetcherParams ?? {};
+  const { pageSize = 20, pageNum = 1 } = body;
+  const data = getData(pageSize, pageNum, body);
   return responseWrapper(data);
+}
+
+export const dailyOptMocker = async (fetcherParams?: FetcherParams) => {
+  const { body = {} } = fetcherParams ?? {};
+  const { type } = body;  
+  const allData = getData(total, 1, body);
+  let res: string[] = [];
+  if(['status', 'source'].includes(type)) {
+    res = allData.records.map(record => record[(type as ('status' | 'source'))]);
+    res = [...new Set(res)];
+  }
+  return responseWrapper({ res });
 }
