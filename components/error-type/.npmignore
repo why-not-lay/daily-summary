@@ -1,0 +1,23 @@
+src
+node_modules
+.babelrc.js
+scripts
+coverage
+docs
+.czrc
+.huskyrc
+.commitlint.config.js
+.commitlint.config
+
+# ts
+tsconfig.json
+
+# jest
+tests
+jestconfig.json
+
+# eslint
+.eslintrc.js
+.eslintrc.cjs
+eslint.config.js
+.eslintignore
