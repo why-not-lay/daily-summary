@@ -9,8 +9,8 @@
 /coverage
 
 # production
-/build
 /dist
+/dev_dist
 
 # build
 docker-compose.yaml

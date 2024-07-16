@@ -1,52 +1,60 @@
 # 日志
 
 > 创建时间: 2024-01-25  
-> 更新时间: 2023-01-25
+> 更新时间: 2024-07-16
 
-用于存储日志，目前接口不对外
+基于 influxdb 存储日志，目前接口不对外
 
-### 已实现功能
+## 已实现功能
 * 日志存储
 
-### 如何运行
-**下载代码**
+## 如何运行
+### 下载代码
 ```bash
 git clone https://github.com/why-not-lay/daily-summary.git
 ```
-**切换目录**
+### 切换目录
 ```bash
 cd ./daily-summary/logger
 ```
-**配置**
+### 配置
 
 在项目根目录下创建 `.env` 文件，并在里面进行相应的配置，相关配置项可以看后面的配置项说明
 
-**执行代码**
+### 构建
+
+下载依赖
+```bash
+npm install
+```
+
+构建项目
+```bash
+npm run build
+```
+### 执行代码
 
 通过 docker 运行:
-1. 构建镜像
+1. 移动到构建目录
+```bash
+cp ./dist/index.cjs ./build
+cd ./build
+```
+2. 构建镜像
 ```bash
 docker build -t logger:lastest .
 ```
-2. 执行 
+3. 执行 
 ```bash
 docker run -p 127.0.0.l:10050:10050 -d logger:lastest
 ```
 
 直接运行:
-1. 下载相关依赖
+1. 执行
 ```bash
-npm install
+node ./dist/index.cjs
 ```
-2. 构建
-```bash
-npm run build
-```
-3. 执行
-```bash
-node ./dist/run.js
-```
-### env 配置项
+## env 配置项
 ```bash
 ###############
 # server config
@@ -59,7 +67,7 @@ SERVER_PORT=10050
 
 ###############
 # db config
-# 数据库配置 
+# influxdb 数据库配置 
 ###############
 # 数据库 host
 DB_HOST=127.0.0.1
@@ -69,13 +77,6 @@ DB_PORT=13306
 DB_USER=
 # 数据库密码
 DB_PASSWORD=
+# 数据库名称
+DB_NAME=test_log_db
 ```
-
-### src 各文件夹及文件说明
-`config`: 配置目录，该目录下的文件是该记录服务的相关配置
-
-`db`: 数据库 sql 语句目录
-
-`plugins`: fastify 插件
-
-`run.ts`: 执行程序文件
