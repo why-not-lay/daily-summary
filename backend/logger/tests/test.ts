@@ -38,26 +38,20 @@ test('测试是否正常插入日志输入数据', async () => {
     {
       type: 'info',
       source: 'test_1',
-      info: {
-        timestamp: now + 1,
-        message: val1
-      }
+      timestamp: now + 1,
+      message: val1,
     },
     {
       type: 'error',
       source: 'test_1',
-      info: {
-        timestamp: now + 2,
-        message: val2,
-      }
+      timestamp: now + 2,
+      message: val2,
     },
     {
       type: 'info',
       source: 'test_2',
-      info: {
-        timestamp: now + 3,
-        message: val3,
-      }
+      timestamp: now + 3,
+      message: val3,
     },
   ]
   try {
@@ -70,9 +64,10 @@ test('测试是否正常插入日志输入数据', async () => {
        SELECT * FROM "log"
        WHERE time > now() - 2s
     `);
-    await shutdonwNoExit();
   } catch (error) {
     console.error(error);
+  } finally {
+    await shutdonwNoExit();
   }
   results = results.map((res: any) => ({
     message: res.message,
@@ -81,13 +76,12 @@ test('测试是否正常插入日志输入数据', async () => {
     type: res.type,
   }));
   const targets = body.map(item => ({
-    message: item.info.message,
+    message: item.message,
     source: item.source,
-    timestamp: item.info.timestamp,
     type: item.type,
   }))
   results.sort((l: any, r: any) => l.timestamp - r.timestamp);
-  targets.sort((l, r) => l.timestamp - r.timestamp);
+  targets.sort((l: any, r: any) => l.timestamp - r.timestamp);
   expect({
     results,
     reqRespData,

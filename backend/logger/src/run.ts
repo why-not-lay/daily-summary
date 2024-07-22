@@ -6,10 +6,8 @@ import { FieldType, InfluxDB } from 'influx';
 interface Log {
   type: string,
   source: string,
-  info: {
-    timestamp: number,
-    [x: string]: string | number | boolean,
-  }
+  message: string,
+  timestamp: number,
 }
 
 let isStart = false;
@@ -21,29 +19,8 @@ const fastify = Fastify({
 }).withTypeProvider<JsonSchemaToTsProvider>();
 
 const fields = {
-  id: FieldType.STRING,
-  ip: FieldType.STRING,
-  ips: FieldType.STRING,
-  url: FieldType.STRING,
-  method: FieldType.STRING,
-  headers: FieldType.STRING,
-  body: FieldType.STRING,
-  query: FieldType.STRING,
   timestamp: FieldType.INTEGER,
   message: FieldType.STRING,
-}
-
-const getField = (obj: any) => {
-  const field: {[x: string]: number | string | boolean | null} = {};
-  Object.keys(fields).forEach(key => {
-    const val = obj[key];
-    if (val) {
-      field[key] = val;
-    } else {
-      field[key] = null;
-    }
-  });
-  return field;
 }
 
 const influx = new InfluxDB({
@@ -104,17 +81,19 @@ fastify.post<{
                 source: {
                   type: 'string'
                 },
-                info: {
-                  type: 'object',
-                  properties: {
-                    timestamp: {
-                      type: 'number'
-                    }
-                  },
-                  required: ['timestamp']
+                message: {
+                  type: 'string'
                 },
+                timestamp: {
+                  type: 'number'
+                }
               },
-              required: ['type', 'source']
+              required: [
+                'type',
+                'source',
+                'message',
+                'timestamp'
+              ]
             }
           }
         },
@@ -125,23 +104,11 @@ fastify.post<{
     const { body } = req;
     const { logs } = body;
     if (logs.length > 0) {
-      const points = logs.filter(log => (
-          Object.keys(log.info).length > 0
-        ) && (
-          Object.values(log.info).every(value => (
-              typeof value === 'string'
-            ) || (
-              typeof value === 'number'
-            ) || (
-              typeof value === 'boolean'
-            )
-          )
-        )
-      ).map(({type, source, info}) => ({
+      const points = logs.map(({type, source, message, timestamp}) => ({
         measurement: 'log',
         tags: { type, source },
-        fields: getField(info),
-        timestamp: new Date(info.timestamp),
+        fields: { message },
+        timestamp: new Date(timestamp),
       }))
       await influx.writePoints(points);
     }
