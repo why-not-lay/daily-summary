@@ -14,12 +14,11 @@ let isStart = false;
 
 const fastify = Fastify({
   logger: {
-    level: 'info'
+    level: 'error'
   },
 }).withTypeProvider<JsonSchemaToTsProvider>();
 
 fastify.setErrorHandler((error: FastifyError, request: FastifyRequest, reply: FastifyReply) => {
-  fastify.log.error(error);
   reply.status(200).send('');
 });
 
