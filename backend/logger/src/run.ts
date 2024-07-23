@@ -1,5 +1,5 @@
 import { JsonSchemaToTsProvider } from '@fastify/type-provider-json-schema-to-ts'
-import Fastify from "fastify";
+import Fastify, { FastifyError, FastifyReply, FastifyRequest } from "fastify";
 import { config } from './config';
 import { FieldType, InfluxDB } from 'influx';
 
@@ -14,9 +14,14 @@ let isStart = false;
 
 const fastify = Fastify({
   logger: {
-    level: 'error'
+    level: 'info'
   },
 }).withTypeProvider<JsonSchemaToTsProvider>();
+
+fastify.setErrorHandler((error: FastifyError, request: FastifyRequest, reply: FastifyReply) => {
+  fastify.log.error(error);
+  reply.status(200).send('');
+});
 
 const fields = {
   timestamp: FieldType.INTEGER,
@@ -155,10 +160,8 @@ const shutdonwNoExit = async () => {
   }
 }
 
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
-
 export {
   start,
+  shutdown,
   shutdonwNoExit,
 }
