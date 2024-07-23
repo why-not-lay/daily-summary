@@ -111,6 +111,10 @@ const createLoop = (
 
   // 添加待侦测的地址
   const addPendingUrls = (urls: string | string[]) => {
+    urls = typeof urls === 'string' ? [ urls ] : urls;
+    // 去重
+    const detectingUrls = new Set(pendingUrlStates.map(state => state.url));
+    urls = urls.filter(url => !detectingUrls.has(url));
     const urlStates = typeof urls === 'string' ? (
       [{
         url: urls,

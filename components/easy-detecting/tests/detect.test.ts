@@ -146,6 +146,7 @@ test('测试监测过程中新增地址逻辑', async () => {
     setTimeout(() => {
       addPendingUrls([
         `${url}/new`,
+        `${url}/200`
       ])
     }, 150);
     setTimerInterval(100);
