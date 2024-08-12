@@ -112,22 +112,13 @@ const createLoop = (
   // 添加待侦测的地址
   const addPendingUrls = (urls: string | string[]) => {
     urls = typeof urls === 'string' ? [ urls ] : urls;
-    // 去重
+    // 先去重
     const detectingUrls = new Set(pendingUrlStates.map(state => state.url));
-    urls = urls.filter(url => !detectingUrls.has(url));
-    const urlStates = typeof urls === 'string' ? (
-      [{
-        url: urls,
-        active: true,
-        retry: 0,
-      }]
-    ) : (
-      urls.map(url => ({
-        url,
-        active: true,
-        retry: 0,
-      }))
-    );
+    const urlStates = urls.filter(url => !detectingUrls.has(url)).map(url => ({
+      url,
+      active: true,
+      retry: 0,
+    }))
     pendingUrlStates = [
       ...pendingUrlStates,
       ...urlStates,
