@@ -1,11 +1,3 @@
-import { STATUS } from "../types/status.js";
-
-export interface ServerError {
-  code: number,
-  msg: string,
-}
-
-
 export const RespWrapper = {
   info(code: number, data: any, msg?: string) {
     return {
@@ -15,9 +7,6 @@ export const RespWrapper = {
     }
   },
   success(data: any) {
-    return this.info(STATUS.SUCCESS, data, 'success');
+    return this.info(0, data, 'success');
   },
-  error(error: ServerError) {
-    return this.info(error.code, null, error.msg);
-  }
 }

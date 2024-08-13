@@ -1,18 +1,15 @@
 {
   "compilerOptions": {
-    "target": "es2015",
+    "target": "es5",
     "module": "ES2015",
     "moduleResolution": "Node",
-    "declaration": true,
-    "outDir": "./dist",
+    "sourceMap": true,
+    "outDir": "./dev_dist",
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "lib": ["es6"],
-    "types": ["node", "jest"]
+    "types": ["node"]
   },
-  "include": [
-    "src/**/*",
-    "tests"
-  ],
+  "include": ["src"],
   "exclude": ["node_modules"]
 }

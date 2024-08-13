@@ -1,25 +1,16 @@
-import { FastifyPluginCallback } from 'fastify';
+import { FastifyInstance, FastifyPluginCallback } from 'fastify';
 import fp from 'fastify-plugin'
 import knex, { Knex } from 'knex'
 
-declare module 'fastify' {
-  interface FastifyInstance {
-    knex: Knex
-  }
-}
-
-const knexPlugin: FastifyPluginCallback<Knex.Config> = (fastify: any, options, done: any) => {
+const knexPlugin: FastifyPluginCallback<Knex.Config> = (fastify: FastifyInstance, options, done: any) => {
   if(!fastify.knex) {
     const Knex = knex(options);
     fastify.decorate('knex', Knex);
-    fastify.addHook('onClose', (fastify: any, done: any) => {
-      if (fastify.knex === Knex) {
-        fastify.knex.destroy(done)
-      }
+    fastify.addHook('preClose', async () => {
+      await fastify.knex.destroy();
     })
   }
   done()
 }
-
 
 export default fp(knexPlugin, { name: 'fastify-knex' })

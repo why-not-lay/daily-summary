@@ -5,9 +5,8 @@ WORKDIR /usr/src/app
 # 将当前目录下的所有文件复制到工作目录
 COPY . .
 
-# 安装应用依赖
-RUN npm --registry http://mirrors.cloud.tencent.com/npm/ install
-RUN npm run build
+# 安装特定依赖
+npm install
 
 # 设置环境变量，用于指定应用监听的端口，默认为 3000
 ENV PORT 10000
@@ -16,4 +15,4 @@ ENV PORT 10000
 EXPOSE $PORT
 
 # 定义容器启动命令
-CMD ["node", "./dist/run.js"]
+CMD ["node", "./index.cjs"]

@@ -1,80 +1,21 @@
 import { JsonSchemaToTsProvider } from '@fastify/type-provider-json-schema-to-ts'
-import Fastify, { FastifyError, FastifyReply, FastifyRequest, RouteShorthandOptions } from "fastify";
-import { createWriteStream } from 'pino-http-send';
-import FastifyKnex from "./plugins/fastify-knex.js";
-import FastifyRedis from "@fastify/redis";
-import FastifyReplyFrom from '@fastify/reply-from';
-import { config } from './config/index.js';
-import { whiteListInterceptor } from './interceptor/while-list.js';
-import { decrypt } from './interceptor/decrypt.js';
-import { RespWrapper } from './wrapper/resp.js';
-import { errorMapping } from './errors/constant.js';
-import { SelfError } from './errors/self-error.js';
-import { encrypt } from './interceptor/encrypt.js';
-import { requestLogInterceptor } from './interceptor/request-log.js';
-import { responseLogInterceptor } from './interceptor/response-log.js';
-import { LogWrapper } from './wrapper/log.js';
-import { ErrLogInfo, LogType, MsgLogInfo } from './types/log.js';
+import Fastify, { RouteShorthandOptions } from "fastify";
+import { config } from './config';
+import { RespWrapper } from './wrapper/resp';
+import { apiUpdator } from './utils/api-update';
+import { ApiOriginPair } from './types/define';
+import { FastifyAuth, FastifySessions, FastifyCrypto, FastifyLog, FastifyKnex, FastifyDetect, FastifyFoward } from './plugins'
+import { createAuth } from './utils/auth';
+import { CustomError } from './errors/custom-error';
+import { ERROR_NAME } from 'dconstant-error-type';
 
-interface ApiRecord {
-  id?: number,
-  api: string,
-  origin: string,
-  flag: number
-  // 毫秒单位时间戳
-  create_time: number,
-  update_time: number,
-}
-
-interface ApiOriginPair {
-  api: string,
-  origin: string,
-}
-
-enum FLAGS {
-  // 正常
-  BASE = 1,
-  // 删除位
-  DEL = 1 << 1,
-  // 暂停位
-  OFF = 1 << 2,
-  // 错误位
-  ERR = 1 << 3  
-}
-
-declare module 'fastify' {
-  interface FastifyRequest {
-    token: string,
-  }
-}
-
-
-const TABLE = 'apis';
-const CACHE_KEY = 'api_cache';
-
-const logStream = createWriteStream({
-  url: `${config.server.logOrigin}/log`,
-});
 
 const fastify = Fastify({
-  logger: {
-    name: 'api-interceptor',
-    level: 'info',
-    stream: logStream,
-  },
+  logger: false,
 }).withTypeProvider<JsonSchemaToTsProvider>();
 
-// 传递加密 token
-fastify.decorateRequest('token', '');
-
-// 设置 logger
-LogWrapper.setLogger(fastify.log.info.bind(fastify.log));
-
-// redis
-fastify.register(FastifyRedis, {
-  host: config.redis.host,
-  port: config.redis.port,
-})
+// custom logger
+fastify.register(FastifyLog);
 
 // mysql
 fastify.register(FastifyKnex, {
@@ -84,73 +25,23 @@ fastify.register(FastifyKnex, {
     port : config.db.port,
     user : config.db.user,
     password : config.db.password,
-    database : 'api_db'
+    database : 'gateway_db'
   },
 });
+// sessions
+fastify.register(FastifySessions);
 
-// 请求转发
-fastify.register(FastifyReplyFrom);
+// auth
+fastify.register(FastifyAuth);
 
-// 拦截
-fastify.addHook('onRequest', requestLogInterceptor);
-fastify.addHook('onRequest', whiteListInterceptor);
-fastify.addHook('preValidation', decrypt);
-fastify.addHook('preSerialization', encrypt);
-fastify.addHook('onResponse', responseLogInterceptor);
+// crypto
+fastify.register(FastifyCrypto);
 
-// 错误处理
-fastify.setErrorHandler((error: FastifyError, req: FastifyRequest, reply: FastifyReply) => {
-  const { code, message: realMsg, stack } = error;
-  const { statusCode, code: realCode, msg } = errorMapping[code] ?? errorMapping.ERROR_UNKNOWN;
-  const infos: ErrLogInfo = {
-    msg,
-    stack,
-    realMsg,
-    code: realCode,
-  }
-  LogWrapper.log(LogType.ERR, infos);
-  reply.status(statusCode).send(RespWrapper.error({
-    code: realCode,
-    msg
-  }))
-});
+// forward
+fastify.register(FastifyFoward);
 
-const validateOrigin = (origin: string) => /^(https?):\/\/(www\.)?([a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+)(:\d+)?$/.test(origin);
-
-const getPairs = async (apis: string[], flag = FLAGS.BASE) => {
-  const origins = await fastify.redis.hmget(CACHE_KEY, ...apis);
-  const pairs = origins.map((origin, idx) => ({
-    api: apis[idx],
-    origin: origin,
-  }));
-  const uncached = pairs.filter(pair => typeof pair.origin !== 'string');
-  if(uncached.length === 0){
-    return pairs;
-  }
-
-  const sql = fastify.knex.select('origin', 'api').from<ApiRecord>(TABLE).where('flag', flag).andWhere(builder => builder.whereIn('api', uncached.map(pair => pair.api))).toString();
-  const infos: MsgLogInfo = {
-    msg: sql,
-  }
-  LogWrapper.log(LogType.MSG, infos);
-
-  const res: ApiOriginPair[] = await fastify.knex.select('origin', 'api').from<ApiRecord>(TABLE).where('flag', flag).andWhere(builder => builder.whereIn('api', uncached.map(pair => pair.api)));
-  if(res.length > 0) {
-    const updates: Record<string, string> = {};
-    res.forEach(pair => {
-      const { origin, api } = pair;
-      const target = uncached.find(pair => pair.api === api);
-      updates[api] = origin;
-      if(target) {
-        target.api = api;
-        target.origin = origin;
-      }
-    });
-    await fastify.redis.hset(CACHE_KEY, updates);
-    return pairs;
-  }
-  return pairs;
-}
+// auto-api-detect
+fastify.register(FastifyDetect)
 
 const bindSchema: RouteShorthandOptions = {
   schema: {
@@ -158,7 +49,6 @@ const bindSchema: RouteShorthandOptions = {
     body: {
       type: 'object',
       properties: {
-        // ApiOriginPair[]
         pairs: {
           type: 'array',
           items: {
@@ -185,116 +75,101 @@ fastify.post<{
   }
 }>('/bind', bindSchema, async (req, reply) => {
   const { pairs } = req.body;
-  const targetFlag = FLAGS.BASE;
-  const updates: ApiRecord[] = pairs.map(pair => ({
-    ...pair,
-    flag: targetFlag,
-    update_time: Date.now(),
-    create_time: Date.now(),
-  }));
+  const { addPendingUrls } = fastify.detector;
+  const { updateApis } = apiUpdator(fastify.knex);
   if(pairs.length > 0) {
-    const apis = pairs.map(pair => pair.api);
-
-    const sql = fastify.knex(TABLE).insert(updates).onConflict('api').merge(['origin', 'update_time', 'flag']).toString();
-    const infos: MsgLogInfo = {
-      msg: sql,
+    const regex = /^(http(s)?:\/\/)[a-zA-Z0-9.-]+(:\d+)?$/;
+    const isPass = pairs.every(pair => regex.test(pair.origin));
+    if (!isPass) {
+      throw new CustomError({
+        name: ERROR_NAME.REQ_BODY
+      });
     }
-    LogWrapper.log(LogType.MSG, infos);
-
-    await fastify.knex(TABLE).insert(updates).onConflict('api').merge(['origin', 'update_time', 'flag']);
-    // 清除旧缓存
-    await fastify.redis.hdel(CACHE_KEY, ...apis);
+    fastify.cLog.info('binding apis', `add apis: ${pairs.map(pair => `[${pair.api} => ${pair.origin}]`).join(' ')}`);
+    await updateApis(pairs);
+    addPendingUrls(pairs.map(pair => `${pair.origin}${config.detect.api}`));
   }
   return reply.send(RespWrapper.success(null));
-})
+});
 
 /**
- * 解绑接口
+ * 用户登录
  */
-fastify.post(
-  '/unbind',
+fastify.post<{
+  Body: {
+    username: string,
+    password: string,
+  }
+}>(
+  '/auth/user',
   {
     schema: {
       // 请求体
       body: {
         type: 'object',
         properties: {
-          apis: {
-            type: 'array',
-            items: {
-              type: 'string'
-            },
-          }
+          username: {
+            type: 'string',
+          },
+          password: {
+            type: 'string',
+          },
         },
-        required: ['apis']
+        required: ['username', 'password'],
       }
     }
-  }, 
+  },
   async (req, reply) => {
-    const { apis } = req.body;
-    const targetFlag = FLAGS.BASE | FLAGS.OFF;
-    if (apis.length > 0) {
-      // 清除缓存
-      await fastify.redis.hdel(CACHE_KEY, ...apis);
-      // 设置数据 flag
-      const sql = fastify.knex(TABLE).update({
-        flag: targetFlag,
-        update_time: Date.now(),
-      }).whereIn('api', apis).toString();
-      const infos: MsgLogInfo = {
-        msg: sql,
-      }
-      LogWrapper.log(LogType.MSG, infos);
-
-      await fastify.knex(TABLE).update({
-        flag: targetFlag,
-        update_time: Date.now(),
-      }).whereIn('api', apis);
-    }
-    return reply.send(RespWrapper.success(null));
-  }
-)
-
-fastify.get('*', async (req, reply) => {
-  const { url } = req;
-  const pair = (await getPairs([url]))?.[0] ?? {};
-  const { origin } = pair;
-  if(validateOrigin(String(origin))) {
-    return reply.from(`${origin}${url}`);
-  } else {
-    const { type, msg } = errorMapping.ERROR_NOT_FOUND
-    throw new SelfError(msg, type);
-  }
-})
-
-fastify.post('*', async (req, reply) => {
-  const { url } = req;
-  const pair = (await getPairs([url]))?.[0] ?? {};
-  const { origin } = pair;
-  if(validateOrigin(String(origin))) {
-    return reply.from(`${origin}${url}`, {
-      onResponse: (request, reply, res) => {
-        const contentType = reply.getHeader('content-type');
-        if((contentType as string).includes('application/json')) {
-          let data = '';
-          res.on('data', (chunk) => {
-            data += chunk;
-          });
-          res.on('end', () => {
-            reply.send(JSON.parse(data));
-          });
-        } else {
-          reply.send(res);
-        }
-      }
+  const { username, password } = req.body;
+  const { authUser } = createAuth(fastify);
+  const { token, tid } = await authUser(username, password);
+  if (!tid) {
+    throw new CustomError({
+      name: ERROR_NAME.NO_AUTHORITY
     });
-  } else {
-    const { type, msg } = errorMapping.ERROR_NOT_FOUND
-    throw new SelfError(msg, type);
   }
+  return reply.send(RespWrapper.success({
+    tid,
+    token,
+  }));
 })
 
-fastify.listen({ port: config.server.port, host: config.server.host }, err => {
-  if (err) throw err
-  console.log(`server listening on ${config.server.port}`)
-})
+const start = async () => {
+  try {
+    const { host, port } = config.server;
+    await fastify.listen({ port, host });
+    fastify.cLog.info('start', `server start at ${host}:${port}`);
+  } catch (error: any) {
+    console.error(error);
+    fastify.cLog.error(error?.message ?? 'unknown error happens while starting');
+    process.exit(1)
+  }
+}
+
+const shutdown = async () => {
+  try {
+    await fastify.close();
+    fastify.cLog.info('close', 'Server closed');
+  } catch (err: any) {
+    console.error(err);
+    fastify.cLog.error(err?.message ?? 'unknown error happens while starting');
+    process.exit(1)
+  }
+  process.exit(0);
+};
+
+const shutdonwNoExit = async () => {
+  try {
+    await fastify.close();
+    fastify.cLog.info('close', 'Server closed');
+  } catch (err: any) {
+    console.error(err);
+    fastify.cLog.error(err?.message ?? 'unknown error happens while starting');
+  }
+}
+
+export {
+  start,
+  shutdown,
+  shutdonwNoExit,
+}

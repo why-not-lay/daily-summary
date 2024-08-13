@@ -1,11 +1,14 @@
 import 'dotenv/config';
 
 interface ApiServerConfig {
+  env: string,
+  detect: {
+    api: string,
+    interval: number,
+  },
   server: {
     port: number,
     host: string,
-    whiteList: string[],
-    authOrigin: string,
     logOrigin: string,
   },
   db: {
@@ -15,21 +18,25 @@ interface ApiServerConfig {
     password: string,
   }
   key: {
-    rsa: string,
+    private: string,
+    public: string,
     iv: string,
   },
-  redis: {
-    host: string,
-    port: number,
+  session: {
+    lifetime: number,
+    intervalForClear: number,
   }
 }
 
 export const config: ApiServerConfig = {
+  env: process.env.NODE_ENV ?? 'dev',
+  detect: {
+    api: process.env.DETECT_API ?? '/detect',
+    interval: process.env.DETECT_INTERVAL ? Number.parseInt(process.env.DETECT_INTERVAL) : 30 * 1000,
+  },
   server: {
     host: process.env.SERVER_HOST ?? 'localhost',
     port: process.env.SERVER_PORT ? Number.parseInt(process.env.SERVER_PORT) : 3000,
-    whiteList: process.env.SERVER_WHITE_LIST?.split(',') ?? [],
-    authOrigin: process.env.SERVER_AUTH_ORIGIN ?? '',
     logOrigin: process.env.SERVER_LOG_ORIGIN ?? '',
   },
   db: {
@@ -39,11 +46,12 @@ export const config: ApiServerConfig = {
     password : process.env.DB_PASSWORD ?? '',
   },
   key: {
-    rsa: process.env.KEY_RSA ?? '',
-    iv: process.env.KEY_IV ?? 'QXk1T5WteDpmhR2h',
+    public: process.env.KEY_PUBLIC_RSA ?? '',
+    private: process.env.KEY_PRIVATE_RSA ?? '',
+    iv: process.env.KEY_IV ?? 'OOOOAAAABBBBCCCC',
   },
-  redis: {
-    host: process.env.REDIS_HOST ?? 'localhost',
-    port: process.env.REDIS_PORT ? Number.parseInt(process.env.REDIS_PORT) : 6379,
+  session: {
+    lifetime: 60 * 60 * 1000,
+    intervalForClear: 10 * 60 * 1000,
   }
 }
