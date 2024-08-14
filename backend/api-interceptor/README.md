@@ -21,6 +21,8 @@
 * 动态加解密
 * 功能的心跳保障机制(2024-08-13基本实现)
 * ~~数据库及缓存出错保底机制~~(暂不考虑)
+* 公钥私钥可动态配置
+* 生产时环境变量动态配置
 
 ### 如何运行
 **下载代码**
@@ -29,7 +31,7 @@ git clone https://github.com/why-not-lay/daily-summary.git
 ```
 **切换目录**
 ```bash
-cd ./daily-summary/api-interceptor
+cd ./daily-summary/backend/api-interceptor
 ```
 
 **下载依赖**
@@ -49,11 +51,22 @@ npm run build:prod
 **执行代码**
 
 通过 docker 运行:
-1. 构建镜像
+1. 移动打包文件
+```bash
+cp ./dist/index.cjs ./build/
+```
+
+2. 更改目录
+```bash
+cd ./build
+```
+
+3. 构建镜像
 ```bash
 docker build -t api-interceptor:lastest .
 ```
-2. 执行 
+
+4. 执行 
 ```bash
 docker run -p 127.0.0.l:10000:10000 -d api-interceptor:lastest
 ```
@@ -128,3 +141,6 @@ KEY_PUBLIC_RSA=
 `wrapper`: 响应数据封装器
 
 `run.ts`: 执行程序文件
+
+### 备注
+* `build` 构建文件夹下之所以会有 `package.json` 文件是因为数据库相关的库无法打包到一个文件里，需要在运行前进行专门下载。
